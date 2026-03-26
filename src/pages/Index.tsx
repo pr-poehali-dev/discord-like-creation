@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
+import { logout as apiLogout, UserProfile } from "@/lib/api";
 
 // ─── Types ───────────────────────────────────────────────
 type Status = "online" | "idle" | "dnd" | "offline";
@@ -115,7 +116,12 @@ function getUserColor(id: number) {
 }
 
 // ─── Component ────────────────────────────────────────────
-export default function Index() {
+interface IndexProps {
+  currentUser: UserProfile;
+  onLogout: () => void;
+}
+
+export default function Index({ currentUser: apiUser, onLogout }: IndexProps) {
   const [activeServer, setActiveServer] = useState(1);
   const [activeChannel, setActiveChannel] = useState(2);
   const [activeView, setActiveView] = useState<View>("chat");
@@ -127,7 +133,16 @@ export default function Index() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const currentUser = USERS[0];
+  const currentUser: User = {
+    id: apiUser.id,
+    name: apiUser.display_name,
+    tag: `${apiUser.username}#0000`,
+    avatar: apiUser.avatar || apiUser.display_name?.[0]?.toUpperCase() || "U",
+    status: (apiUser.status as Status) || "online",
+    role: apiUser.role || "Участник",
+    joinedAt: new Date(apiUser.created_at).toLocaleDateString("ru", { day: "numeric", month: "short", year: "numeric" }),
+    bio: apiUser.bio || undefined,
+  };
   const activeChannelData = CHANNELS.find((c) => c.id === activeChannel);
 
   const groupedUsers: Record<string, User[]> = {
@@ -576,7 +591,7 @@ export default function Index() {
                   style={{ color: "var(--accent-red)" }}
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "#ed424511"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"; }}
-                  onClick={() => showNotification("Выход — скоро!")}
+                  onClick={async () => { await apiLogout(); onLogout(); }}
                 >
                   <Icon name="LogOut" size={18} />
                   <span className="text-sm font-medium">Выйти из аккаунта</span>
